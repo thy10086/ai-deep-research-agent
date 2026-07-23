@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +12,7 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+    upload_dir: Path
     llm_api_key: str = ""
     llm_base_url: str = ""
     llm_model: str = ""
