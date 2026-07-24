@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.document import Document, DocumentChunk
 from app.services.chunker import chunk_sections
 from app.services.parser import parse_document
-
+from app.services.embeddings import embedding_service
 
 class DocumentNotFoundError(Exception):
     pass
@@ -48,6 +48,10 @@ async def process_document(
         )
         chunks = chunk_sections(sections)
 
+        embeddings = await embedding_service.embed_texts(
+            [chunk.content for chunk in chunks]
+        )
+
         await session.execute(
             delete(DocumentChunk).where(
                 DocumentChunk.document_id == document.id
@@ -61,7 +65,7 @@ async def process_document(
                     chunk_index=index,
                     content=chunk.content,
                     token_count=len(tokenizer.encode(chunk.content)),
-                    embedding=None,
+                    embedding=embeddings[index],
                     attributes=chunk.metadata,
                 )
                 for index, chunk in enumerate(chunks)
