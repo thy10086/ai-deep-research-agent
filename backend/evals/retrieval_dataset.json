@@ -1,0 +1,70 @@
+{
+  "documents": [
+    {
+      "id": "hybrid-retrieval",
+      "title": "Hybrid Retrieval",
+      "content": "Hybrid retrieval combines keyword search, dense vector retrieval, and score fusion to improve evidence recall."
+    },
+    {
+      "id": "corrective-rag",
+      "title": "Corrective RAG",
+      "content": "Corrective retrieval augmented generation evaluates retrieved evidence and rewrites the query when document quality is poor."
+    },
+    {
+      "id": "agent-memory",
+      "title": "Agent Memory",
+      "content": "Long-term agent memory stores useful experiences and retrieves relevant observations for future planning and decision making."
+    },
+    {
+      "id": "reranking",
+      "title": "Cross Encoder Reranking",
+      "content": "A cross encoder jointly reads a query and candidate passage to rerank retrieval results with higher precision."
+    },
+    {
+      "id": "vector-index",
+      "title": "HNSW Vector Index",
+      "content": "HNSW is an approximate nearest neighbor index that provides fast vector similarity search with strong recall."
+    },
+    {
+      "id": "observability",
+      "title": "LLM Observability",
+      "content": "Production LLM observability tracks traces, model latency, token usage, cost, errors, and evaluation scores."
+    },
+    {
+      "id": "embedding",
+      "title": "Multilingual Embeddings",
+      "content": "Multilingual embedding models map semantically related text from different languages into nearby vector representations."
+    },
+    {
+      "id": "cache",
+      "title": "Semantic Cache",
+      "content": "A semantic cache reuses answers for meaningfully similar requests to reduce model latency and inference cost."
+    }
+  ],
+  "queries": [
+    {
+      "query": "如何结合关键词和向量搜索提高召回率？",
+      "relevant_ids": ["hybrid-retrieval"]
+    },
+    {
+      "query": "检索结果质量较差时如何自动改写查询？",
+      "relevant_ids": ["corrective-rag"]
+    },
+    {
+      "query": "智能体怎样保存历史经验用于未来规划？",
+      "relevant_ids": ["agent-memory"]
+    },
+    {
+      "query": "如何对初步召回的候选文档进行精细重排？",
+      "relevant_ids": ["reranking"]
+    },
+    {
+      "query": "怎样监控大模型应用的延迟、费用和错误？",
+      "relevant_ids": ["observability"]
+    },
+    {
+      "query": "不同语言但语义相同的文本如何相互检索？",
+      "relevant_ids": ["embedding"]
+    }
+  ]
+}
