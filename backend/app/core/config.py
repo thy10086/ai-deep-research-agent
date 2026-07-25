@@ -12,6 +12,8 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+
+    frontend_origin: str = "http://localhost:5173"
     upload_dir: Path
     llm_api_key: str = ""
     llm_base_url: str = ""
