@@ -1,6 +1,14 @@
 from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +17,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.document import Document
 from app.schemas.document import DocumentResponse
+from pathlib import Path
 
 from app.services.storage import (
     EmptyFileError,
@@ -26,11 +35,27 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
 READ_CHUNK_SIZE = 1024 * 1024
+
+
 CONTENT_TYPE_SUFFIXES = {
     "application/pdf": ".pdf",
     "text/plain": ".txt",
     "text/markdown": ".md",
 }
+
+
+@router.get(
+    "",
+    response_model=list[DocumentResponse],
+)
+async def list_documents(
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> list[Document]:
+    result = await session.scalars(
+        select(Document).order_by(Document.created_at.desc())
+    )
+    return list(result)
+
 
 
 @router.post(
@@ -124,3 +149,34 @@ async def process_uploaded_document(
             status_code=status.HTTP_409_CONFLICT,
             detail="The document source file is unavailable.",
         ) from error
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_document(
+    document_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    document = await session.get(Document, document_id)
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found.",
+        )
+
+    source_path = (
+        Path(document.source_uri)
+        if document.source_uri
+        else None
+    )
+
+    await session.delete(document)
+    await session.commit()
+
+    if source_path is not None:
+        source_path.unlink(missing_ok=True)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

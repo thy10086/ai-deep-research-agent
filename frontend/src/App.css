@@ -20,14 +20,22 @@
 .upload-zone:hover { border-color: #4d7b65; background: #eef5f1; }
 .upload-zone strong { color: #283b32; font-size: 14px; }
 .upload-zone span { color: #7b857f; font-size: 11px; }
-.document-list { margin-top: 22px; }
+.document-list { margin-top: 22px; display: grid; gap: 8px; }
 .empty-library { margin: 0; padding: 18px 8px; color: #8a928d; font-size: 12px; text-align: center; }
-.document-row { min-width: 0; padding: 11px 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 18px; gap: 9px; align-items: center; background: #fff; border: 1px solid #e0e5e1; border-radius: 6px; }
+.document-row { min-width: 0; padding: 11px 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 9px; align-items: center; background: #fff; border: 1px solid #e0e5e1; border-radius: 6px; }
 .file-icon { width: 34px; height: 34px; display: grid; place-items: center; color: #426956; background: #edf4f0; border-radius: 5px; }
 .document-row strong, .document-row span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .document-row strong { color: #313834; font-size: 12px; }
 .document-row span { margin-top: 4px; color: #7c8680; font-size: 10px; }
 .ready-icon { color: #2d9663; }
+.document-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.retry-button { height: 28px; padding: 0 6px; display: flex; align-items: center; justify-content: center; gap: 3px; color: #315c4a; background: #edf4f0; border: 0; border-radius: 5px; }
+.retry-button:hover:not(:disabled) { color: #1f5b45; background: #edf4f0; }
+.retry-button:disabled { color: #9ca69f; }
+.document-row .retry-label { margin: 0; color: inherit; font-size: 10px; }
+.delete-button { width: 28px; height: 28px; display: grid; place-items: center; color: #89928d; background: transparent; border: 0; border-radius: 5px; }
+.delete-button:hover:not(:disabled) { color: #a44742; background: #fff0ef; }
+.delete-button:disabled { color: #b8bfbb; }
 
 .research-panel { min-width: 0; padding: 44px clamp(28px, 7vw, 104px) 28px; display: flex; flex-direction: column; background: #fff; }
 .research-header { max-width: 760px; }

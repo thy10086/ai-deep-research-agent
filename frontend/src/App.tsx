@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import {
   ArrowUp,
   CheckCircle2,
   FileText,
   LoaderCircle,
+  RefreshCw,
   Search,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import './App.css'
@@ -36,12 +38,82 @@ type AnswerResponse = {
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [document, setDocument] = useState<DocumentRecord | null>(null)
+  const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<AnswerResponse | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isAnswering, setIsAnswering] = useState(false)
+  const [processingDocumentId, setProcessingDocumentId] = useState<string | null>(null)
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const loadDocuments = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/documents`)
+        if (!response.ok) throw new Error('知识库加载失败')
+        setDocuments(await response.json())
+      } catch (caughtError) {
+        setError(
+          caughtError instanceof Error ? caughtError.message : '知识库加载失败',
+        )
+      }
+    }
+
+    void loadDocuments()
+  }, [])
+
+  const processExistingDocument = async (documentId: string) => {
+    setError('')
+    setProcessingDocumentId(documentId)
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/documents/${documentId}/process`,
+        { method: 'POST' },
+      )
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail ?? '文档处理失败')
+      }
+
+      const processed: DocumentRecord = await response.json()
+      setDocuments((current) =>
+        current.map((item) => (item.id === processed.id ? processed : item)),
+      )
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : '文档处理失败')
+    } finally {
+      setProcessingDocumentId(null)
+    }
+  }
+
+  const deleteExistingDocument = async (item: DocumentRecord) => {
+    if (!window.confirm(`确定删除“${item.filename}”及其索引吗？`)) return
+
+    setError('')
+    setDeletingDocumentId(item.id)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.detail ?? '文档删除失败')
+      }
+
+      setDocuments((current) =>
+        current.filter((document) => document.id !== item.id),
+      )
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : '文档删除失败')
+    } finally {
+      setDeletingDocumentId(null)
+    }
+  }
 
   const processFile = async (file: File) => {
     setError('')
@@ -63,19 +135,9 @@ function App() {
       }
 
       const uploaded: DocumentRecord = await uploadResponse.json()
-      setDocument(uploaded)
+      setDocuments((current) => [uploaded, ...current])
 
-      const processResponse = await fetch(
-        `${API_BASE_URL}/documents/${uploaded.id}/process`,
-        { method: 'POST' },
-      )
-
-      if (!processResponse.ok) {
-        const payload = await processResponse.json().catch(() => null)
-        throw new Error(payload?.detail ?? '文档处理失败')
-      }
-
-      setDocument(await processResponse.json())
+      await processExistingDocument(uploaded.id)
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : '操作失败')
     } finally {
@@ -166,15 +228,50 @@ function App() {
           </button>
 
           <div className="document-list">
-            {document ? (
-              <div className="document-row">
-                <span className="file-icon"><FileText size={18} /></span>
-                <div>
-                  <strong>{document.filename}</strong>
-                  <span>{document.status === 'ready' ? '已完成向量索引' : document.status}</span>
+            {documents.length > 0 ? (
+              documents.map((item) => (
+                <div className="document-row" key={item.id}>
+                  <span className="file-icon"><FileText size={18} /></span>
+                  <div>
+                    <strong>{item.filename}</strong>
+                    <span>{item.status === 'ready' ? '已完成向量索引' : item.status}</span>
+                  </div>
+                  <div className="document-actions">
+                    {item.status === 'ready' ? (
+                      <CheckCircle2 className="ready-icon" size={17} />
+                    ) : (
+                      <button
+                        className="retry-button"
+                        type="button"
+                        title="处理文档"
+                        aria-label={`处理 ${item.filename}`}
+                        disabled={processingDocumentId === item.id}
+                        onClick={() => void processExistingDocument(item.id)}
+                      >
+                        <RefreshCw
+                          className={processingDocumentId === item.id ? 'spin' : ''}
+                          size={15}
+                        />
+                        <span className="retry-label">处理</span>
+                      </button>
+                    )}
+                    <button
+                      className="delete-button"
+                      type="button"
+                      title="删除文档"
+                      aria-label={`删除 ${item.filename}`}
+                      disabled={deletingDocumentId === item.id}
+                      onClick={() => void deleteExistingDocument(item)}
+                    >
+                      {deletingDocumentId === item.id ? (
+                        <LoaderCircle className="spin" size={14} />
+                      ) : (
+                        <Trash2 size={14} />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                {document.status === 'ready' && <CheckCircle2 className="ready-icon" size={17} />}
-              </div>
+              ))
             ) : (
               <p className="empty-library">上传资料后即可基于内容提问</p>
             )}
