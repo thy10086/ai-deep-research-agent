@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import aioboto3
+from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
@@ -24,8 +25,16 @@ class S3ObjectStorage:
     access_key_id: str = ""
     secret_access_key: str = ""
 
-    def _client_options(self) -> dict[str, str]:
-        options = {"region_name": self.region}
+    def _client_options(self) -> dict[str, object]:
+        options: dict[str, object] = {
+            "region_name": self.region,
+            "config": Config(
+                signature_version="s3v4",
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+                s3={"addressing_style": "path"},
+            ),
+        }
 
         if self.endpoint_url:
             options["endpoint_url"] = self.endpoint_url
@@ -65,7 +74,15 @@ class S3ObjectStorage:
                     self.bucket_name,
                     object_key,
                 )
-        except (BotoCoreError, ClientError, OSError) as error:
+        except ClientError as error:
+            metadata = error.response.get("ResponseMetadata", {})
+            details = error.response.get("Error", {})
+            raise S3StorageError(
+                "Failed to upload file to S3 "
+                f"(status={metadata.get('HTTPStatusCode')}, "
+                f"code={details.get('Code')})."
+            ) from error
+        except (BotoCoreError, OSError) as error:
             raise S3StorageError("Failed to upload file to S3.") from error
 
         return f"s3://{self.bucket_name}/{object_key}"
