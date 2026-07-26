@@ -67,7 +67,7 @@ async def test_answer_question_uses_retrieved_sources(
         fake_search,
     )
     monkeypatch.setattr(
-        "app.services.llm.OllamaLLMService.generate",
+        "app.services.llm.OpenAICompatibleLLMService.generate",
         fake_generate,
     )
 

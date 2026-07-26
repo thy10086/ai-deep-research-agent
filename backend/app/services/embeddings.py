@@ -14,9 +14,10 @@ class InvalidEmbeddingResponseError(EmbeddingServiceError):
 
 
 @dataclass(frozen=True)
-class OllamaEmbeddingService:
+class OpenAICompatibleEmbeddingService:
     base_url: str
     model: str
+    api_key: str = ""
     expected_dimension: int = 1024
     batch_size: int = 32
     timeout_seconds: float = 120.0
@@ -35,6 +36,9 @@ class OllamaEmbeddingService:
             return []
 
         all_embeddings: list[list[float]] = []
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
             async with httpx.AsyncClient(
@@ -45,24 +49,34 @@ class OllamaEmbeddingService:
                 for start in range(0, len(texts), self.batch_size):
                     batch = texts[start : start + self.batch_size]
                     response = await client.post(
-                        "/api/embed",
+                        "/embeddings",
                         json={
                             "model": self.model,
                             "input": batch,
+                            "encoding_format": "float",
                         },
+                        headers=headers,
                     )
                     response.raise_for_status()
 
                     payload = response.json()
-                    embeddings = payload.get("embeddings")
+                    data = payload.get("data")
 
                     if (
-                        not isinstance(embeddings, list)
-                        or len(embeddings) != len(batch)
+                        not isinstance(data, list)
+                        or len(data) != len(batch)
                     ):
                         raise InvalidEmbeddingResponseError(
                             "Embedding count does not match input count."
                         )
+
+                    embeddings = []
+                    for item in data:
+                        if not isinstance(item, dict):
+                            raise InvalidEmbeddingResponseError(
+                                "Embedding response item is invalid."
+                            )
+                        embeddings.append(item.get("embedding"))
 
                     all_embeddings.extend(
                         self._validate_embeddings(embeddings)
@@ -110,7 +124,8 @@ class OllamaEmbeddingService:
         return validated
 
 
-embedding_service = OllamaEmbeddingService(
+embedding_service = OpenAICompatibleEmbeddingService(
     base_url=settings.embedding_base_url,
     model=settings.embedding_model,
+    api_key=settings.embedding_api_key or settings.llm_api_key,
 )

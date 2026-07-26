@@ -6,7 +6,7 @@ import pytest
 from app.services.embeddings import (
     EmbeddingServiceError,
     InvalidEmbeddingResponseError,
-    OllamaEmbeddingService,
+    OpenAICompatibleEmbeddingService,
 )
 
 
@@ -21,14 +21,14 @@ async def test_embed_texts_batches_requests() -> None:
         return httpx.Response(
             200,
             json={
-                "embeddings": [
-                    [float(index), 0.5, 1.0]
+                "data": [
+                    {"embedding": [float(index), 0.5, 1.0]}
                     for index, _ in enumerate(payload["input"])
                 ]
             },
         )
 
-    service = OllamaEmbeddingService(
+    service = OpenAICompatibleEmbeddingService(
         base_url="http://embedding.test",
         model="test-model",
         expected_dimension=3,
@@ -53,10 +53,10 @@ async def test_embed_query_returns_single_vector() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"embeddings": [[0.1, 0.2, 0.3]]},
+            json={"data": [{"embedding": [0.1, 0.2, 0.3]}]},
         )
 
-    service = OllamaEmbeddingService(
+    service = OpenAICompatibleEmbeddingService(
         base_url="http://embedding.test",
         model="test-model",
         expected_dimension=3,
@@ -71,10 +71,10 @@ async def test_embed_texts_rejects_wrong_dimension() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"embeddings": [[0.1, 0.2]]},
+            json={"data": [{"embedding": [0.1, 0.2]}]},
         )
 
-    service = OllamaEmbeddingService(
+    service = OpenAICompatibleEmbeddingService(
         base_url="http://embedding.test",
         model="test-model",
         expected_dimension=3,
@@ -90,7 +90,7 @@ async def test_embed_texts_converts_http_errors() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503)
 
-    service = OllamaEmbeddingService(
+    service = OpenAICompatibleEmbeddingService(
         base_url="http://embedding.test",
         model="test-model",
         expected_dimension=3,

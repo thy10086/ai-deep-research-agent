@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_base_url: str = ""
     llm_model: str = ""
+    embedding_api_key: str = ""
     embedding_base_url: str
     embedding_model: str = ""
 

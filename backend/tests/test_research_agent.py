@@ -53,7 +53,7 @@ async def test_research_agent_runs_all_nodes(
         return "混合检索结合两类检索方式。[1]"
 
     monkeypatch.setattr(
-        "app.services.llm.OllamaLLMService.generate_json",
+        "app.services.llm.OpenAICompatibleLLMService.generate_json",
         fake_generate_json,
     )
     monkeypatch.setattr(
@@ -61,7 +61,7 @@ async def test_research_agent_runs_all_nodes(
         fake_search,
     )
     monkeypatch.setattr(
-        "app.services.llm.OllamaLLMService.generate",
+        "app.services.llm.OpenAICompatibleLLMService.generate",
         fake_generate,
     )
 
@@ -98,7 +98,7 @@ async def test_research_agent_handles_no_evidence(
         return []
 
     monkeypatch.setattr(
-        "app.services.llm.OllamaLLMService.generate_json",
+        "app.services.llm.OpenAICompatibleLLMService.generate_json",
         fake_generate_json,
     )
     monkeypatch.setattr(

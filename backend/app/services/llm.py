@@ -15,9 +15,10 @@ class InvalidLLMResponseError(LLMServiceError):
 
 
 @dataclass(frozen=True)
-class OllamaLLMService:
+class OpenAICompatibleLLMService:
     base_url: str
     model: str
+    api_key: str = ""
     timeout_seconds: float = 180.0
 
     transport: httpx.AsyncBaseTransport | None = field(
@@ -34,8 +35,6 @@ class OllamaLLMService:
     ) -> str:
         request_payload: dict[str, object] = {
             "model": self.model,
-            "stream": False,
-            "think": False,
             "messages": [
                 {
                     "role": "system",
@@ -46,12 +45,16 @@ class OllamaLLMService:
                     "content": user_prompt,
                 },
             ],
-            "options": {
-                "temperature": 0.2,
-            },
+            "temperature": 0.2,
         }
         if json_mode:
-            request_payload["format"] = "json"
+            request_payload["response_format"] = {
+                "type": "json_object",
+            }
+
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
             async with httpx.AsyncClient(
@@ -60,8 +63,9 @@ class OllamaLLMService:
                 transport=self.transport,
             ) as client:
                 response = await client.post(
-                    "/api/chat",
+                    "/chat/completions",
                     json=request_payload,
+                    headers=headers,
                 )
                 response.raise_for_status()
         except httpx.HTTPError as error:
@@ -70,7 +74,20 @@ class OllamaLLMService:
             ) from error
 
         payload = response.json()
-        message = payload.get("message")
+        choices = payload.get("choices")
+
+        if not isinstance(choices, list) or not choices:
+            raise InvalidLLMResponseError(
+                "Language model response has no choices."
+            )
+
+        choice = choices[0]
+        if not isinstance(choice, dict):
+            raise InvalidLLMResponseError(
+                "Language model response has an invalid choice."
+            )
+
+        message = choice.get("message")
 
         if not isinstance(message, dict):
             raise InvalidLLMResponseError(
@@ -112,7 +129,8 @@ class OllamaLLMService:
         return payload
 
 
-llm_service = OllamaLLMService(
+llm_service = OpenAICompatibleLLMService(
     base_url=settings.llm_base_url,
     model=settings.llm_model,
+    api_key=settings.llm_api_key,
 )
