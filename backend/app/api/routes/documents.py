@@ -17,18 +17,19 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.document import Document
 from app.schemas.document import DocumentResponse
-from pathlib import Path
-
-from app.services.storage import (
-    EmptyFileError,
-    FileTooLargeError,
-    save_upload,
-)
-
 from app.services.processor import (
     DocumentNotFoundError,
     MissingSourceFileError,
     process_document,
+)
+from app.services.s3_storage import S3StorageError
+from app.services.storage import (
+    EmptyFileError,
+    FileTooLargeError,
+    StorageConfigurationError,
+    delete_source,
+    persist_upload,
+    save_upload,
 )
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -107,11 +108,22 @@ async def upload_document(
             detail="This document has already been uploaded.",
         )
 
+    try:
+        source_uri = await persist_upload(
+            stored_upload=stored_upload,
+            suffix=CONTENT_TYPE_SUFFIXES[file.content_type],
+        )
+    except (StorageConfigurationError, S3StorageError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The document storage service is unavailable.",
+        ) from error
+
     document = Document(
         filename=file.filename,
         content_type=file.content_type,
         checksum=stored_upload.checksum,
-        source_uri=stored_upload.path.as_posix(),
+        source_uri=source_uri,
         status="pending",
     )
     session.add(document)
@@ -149,6 +161,11 @@ async def process_uploaded_document(
             status_code=status.HTTP_409_CONFLICT,
             detail="The document source file is unavailable.",
         ) from error
+    except S3StorageError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The document storage service is unavailable.",
+        ) from error
 
 
 @router.delete(
@@ -167,16 +184,16 @@ async def delete_document(
             detail="Document not found.",
         )
 
-    source_path = (
-        Path(document.source_uri)
-        if document.source_uri
-        else None
-    )
+    if document.source_uri:
+        try:
+            await delete_source(document.source_uri)
+        except (S3StorageError, OSError) as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The document storage service is unavailable.",
+            ) from error
 
     await session.delete(document)
     await session.commit()
-
-    if source_path is not None:
-        source_path.unlink(missing_ok=True)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,4 +1,3 @@
-from pathlib import Path
 from uuid import UUID
 
 import tiktoken
@@ -9,6 +8,7 @@ from app.models.document import Document, DocumentChunk
 from app.services.chunker import chunk_sections
 from app.services.parser import parse_document
 from app.services.embeddings import embedding_service
+from app.services.storage import materialize_source
 
 class DocumentNotFoundError(Exception):
     pass
@@ -33,20 +33,19 @@ async def process_document(
     if document.source_uri is None:
         raise MissingSourceFileError
 
-    source_path = Path(document.source_uri)
-
-    if not source_path.is_file():
-        raise MissingSourceFileError
-
     document.status = "processing"
     await session.commit()
 
     try:
-        sections = await parse_document(
-            source_path,
-            document.content_type,
-        )
-        chunks = chunk_sections(sections)
+        async with materialize_source(document.source_uri) as source_path:
+            if not source_path.is_file():
+                raise MissingSourceFileError
+
+            sections = await parse_document(
+                source_path,
+                document.content_type,
+            )
+            chunks = chunk_sections(sections)
 
         embeddings = await embedding_service.embed_texts(
             [chunk.content for chunk in chunks]

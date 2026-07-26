@@ -14,7 +14,13 @@ class Settings(BaseSettings):
     redis_url: str
 
     frontend_origin: str = "http://localhost:5173"
+    storage_backend: str = "local"
     upload_dir: Path
+    s3_endpoint_url: str = ""
+    s3_bucket_name: str = ""
+    s3_region: str = "auto"
+    s3_access_key_id: str = ""
+    s3_secret_access_key: str = ""
     llm_api_key: str = ""
     llm_base_url: str = ""
     llm_model: str = ""
