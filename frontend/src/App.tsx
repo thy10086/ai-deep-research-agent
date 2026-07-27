@@ -187,7 +187,7 @@ function App() {
           <h1>Deep Research</h1>
           <p>Local evidence workspace</p>
         </div>
-        <span className="service-status"><i /> 本地模型在线</span>
+        <span className="service-status"><i /> 云端服务在线</span>
       </header>
 
       <section className="workspace">
@@ -282,7 +282,7 @@ function App() {
           <div className="research-header">
             <span className="eyebrow">RESEARCH SESSION</span>
             <h2>基于证据展开研究</h2>
-            <p>答案仅根据本地知识库生成，并保留可核验的原文引用。</p>
+            <p>答案仅根据已上传的知识库生成，并保留可核验的原文引用。</p>
           </div>
 
           <div className="conversation">
@@ -290,7 +290,7 @@ function App() {
               <div className="empty-state">
                 <Search size={28} />
                 <h3>从一个具体问题开始</h3>
-                <p>系统将检索最相关的资料片段，再由本地模型组织答案。</p>
+                <p>系统将检索最相关的资料片段，再由云端模型组织答案。</p>
               </div>
             )}
 
