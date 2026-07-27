@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: ai-deep-research-agent-api
+    runtime: python
+    plan: free
+    region: ohio
+    rootDir: backend
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.13
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: UPLOAD_DIR
+        value: /tmp/ai-deep-research-agent/uploads
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_BUCKET_NAME
+        value: research-documents
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.siliconflow.cn/v1
+      - key: LLM_MODEL
+        value: Qwen/Qwen2.5-7B-Instruct
+      - key: EMBEDDING_BASE_URL
+        value: https://api.siliconflow.cn/v1
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-m3
