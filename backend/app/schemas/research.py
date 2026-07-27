@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -36,3 +37,24 @@ class ResearchResponse(BaseModel):
     subquestions: list[str]
     report: str
     evidence: list[ResearchEvidence]
+
+ResearchTaskState = Literal[
+    "deferred",
+    "queued",
+    "in_progress",
+    "complete",
+    "not_found",
+    "failed",
+]
+
+
+class ResearchJobCreated(BaseModel):
+    job_id: str
+    status: Literal["queued"]
+
+
+class ResearchJobStatus(BaseModel):
+    job_id: str
+    status: ResearchTaskState
+    result: ResearchResponse | None = None
+    error: str | None = None
